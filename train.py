@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from keras.preprocessing import image
 from resnet50 import ResNet50
+from mobilenet import MobileNet
 from os import listdir
 from imagenet_utils import preprocess_input
 
@@ -24,6 +25,7 @@ def image_to_encoding(image_path):
     x = preprocess_input(x)
     encoding = model.predict(x)
     encoding = np.squeeze(encoding)
+    encoding = encoding.flatten()
     return encoding
 
 # utility function to calculate accuracy 
@@ -33,26 +35,35 @@ def accuracy(predictions, labels):
     return accu 
 
 train_X = np.array([ ])
+test_X = np.array([ ], dtype=np.float32)
 train_Y = np.zeros((m, num_labels), dtype=int)
 train_Y[np.arange(m), category] = 1
-#train_Y = train_Y[:499,:]
+#train_Y = train_Y[:100,:]
 #train_Y = np.transpose(train_Y)
 
 
-for cnt in range(1, 5000):
+for cnt in range(1, 5001):
     print("Processing -> " + str(cnt))
     train_X = np.append(train_X, image_to_encoding('./training/training/' + str(cnt) + '.png'))
 
-train_X = train_X.reshape(-1,2048)
+for x in range(1, 40001):
+    print("Processing -> " + str(x))
+    test_X = np.append(test_X, image_to_encoding('./testing/' + str(x) + '.png'))
+
+#np.savetxt('train_X.txt', train_X, delimiter=',')
+#np.savetxt('test_X.txt', test_X, delimiter=',')
+
+train_X = train_X.reshape(-1,50176)
+test_X = test_X.reshape(-1,50176)
 #train_X = np.transpose(train_X)
 
 graph = tf.Graph()
 
 with graph.as_default():
-    A = tf.Variable(tf.random_normal(shape=[2048, num_labels]))
+    A = tf.Variable(tf.random_normal(shape=[50176, num_labels]))
     b = tf.Variable(tf.random_normal(shape=[num_labels]))
 
-    data = tf.placeholder(dtype=tf.float32, shape=[None, 2048])
+    data = tf.placeholder(dtype=tf.float32, shape=[None, 50176])
     target = tf.placeholder(dtype=tf.float32, shape=[None, num_labels])
 
     logits = tf.matmul(data, A) + b
@@ -67,6 +78,7 @@ with graph.as_default():
 
 batch_size = 50
 num_steps = 5000
+loss_trace = [ ]
 
 with tf.Session(graph=graph) as session:
     tf.global_variables_initializer().run()
@@ -82,7 +94,25 @@ with tf.Session(graph=graph) as session:
 
         # run one step of computation 
         _, l, predictions = session.run([goal, loss, train_prediction], feed_dict=feed_dict)
+        loss_trace.append(l)
 
         if (step % 100 == 0):
             print("Minibatch loss at step {0}: {1}".format(step, l)) 
             print("Minibatch accuracy: {:.1f}%".format(accuracy(predictions, batch_labels)))
+    
+    pred = tf.nn.softmax(tf.matmul(test_X, A) + b)
+    pred = tf.argmax(pred, axis=1)
+    pred = pred + 1
+    res = pred.eval()
+    ind = np.arange(1,40001,1)
+    d = {'id': ind, 'category': res}
+    df = pd.DataFrame(data=d, dtype=np.int8)
+    df.to_csv('submission.csv', index=False)
+
+# Visualization of the results
+# loss function
+plt.plot(loss_trace)
+plt.title('Cross Entropy Loss')
+plt.xlabel('epoch')
+plt.ylabel('loss')
+plt.show()
