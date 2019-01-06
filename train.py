@@ -31,19 +31,18 @@ def accuracy(predictions, labels):
 
 train_Y = np.zeros((m, num_labels), dtype=int)
 train_Y[np.arange(m), category] = 1
-train_Y = train_Y[:500,:]
 
 train_X = [ ]
 test_X = [ ]
 
 
 print("Processing Training data")
-for cnt in range(1, 501):
+for cnt in range(1, 5001):
     train_X.append(image_to_encoding('./training/training/' + str(cnt) + '.png'))
 
 print("Processing Testing Data")
-for x in range(1, 401):
-    if x % 50 == 0:
+for x in range(1, 40001):
+    if x % 5000 == 0:
         print("Processed -> " + str(x))
     test_X.append(image_to_encoding('./testing/' + str(x) + '.png'))
 
@@ -53,7 +52,7 @@ train_X = np.array(train_X)
 train_X = train_X.reshape((-1, 224, 224, 3))
 train_X = preprocess_input(train_X)
 train_X = model.predict(train_X)
-train_X = train_X.reshape((500,-1))
+train_X = train_X.reshape((m,-1))
 end = time.time()
 print("Time taken -> " + str(end-start))
 
@@ -63,7 +62,7 @@ test_X = np.array(test_X)
 test_X = test_X.reshape((-1, 224, 224, 3))
 test_X = preprocess_input(test_X)
 test_X = model.predict(test_X)
-test_X = test_X.reshape((400,-1))
+test_X = test_X.reshape((40000,-1))
 end = time.time()
 print("Time taken -> " + str(end-start))
 
@@ -91,7 +90,7 @@ with graph.as_default():
     train_prediction = tf.nn.softmax(logits)
 
 batch_size = 50
-num_steps = 2000
+num_steps = 4000
 loss_trace = [ ]
 
 with tf.Session(graph=graph) as session:
@@ -119,7 +118,7 @@ with tf.Session(graph=graph) as session:
     pred = tf.argmax(pred, axis=1)
     pred = pred + 1
     res = pred.eval()
-    ind = np.arange(1,401,1)
+    ind = np.arange(1,40001,1)
     d = {'id': ind, 'category': res}
     df = pd.DataFrame(data=d, dtype=np.int8)
     df.to_csv('submission.csv', index=False)
