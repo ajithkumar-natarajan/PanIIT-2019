@@ -9,25 +9,18 @@ from mobilenet import MobileNet
 from os import listdir
 from imagenet_utils import preprocess_input
 
-
 labels = pd.read_csv("./training/solution.csv")
 category = labels['category'] - 1
 m = labels.shape[0]
 num_labels = 6
 
 model = MobileNet(weights='imagenet', include_top=False)
-#model = ResNet50(weights='imagenet', include_top=False)
 
 def image_to_encoding(image_path):
     img = image.load_img(image_path, target_size=(224, 224))
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis = 0)
     return x
-    #x = preprocess_input(x)
-    #encoding = model.predict(x)
-    #encoding = np.squeeze(encoding)
-    #encoding = encoding.flatten()
-    #return encoding
 
 # utility function to calculate accuracy 
 def accuracy(predictions, labels): 
@@ -35,18 +28,14 @@ def accuracy(predictions, labels):
     accu = (100.0 * correctly_predicted) / predictions.shape[0] 
     return accu 
 
-#train_X = np.array([ ])
-#test_X = np.array([ ], dtype=np.float32)
 train_Y = np.zeros((m, num_labels), dtype=int)
 train_Y[np.arange(m), category] = 1
-#train_Y = train_Y[:100,:]
-#train_Y = np.transpose(train_Y)
 
 train_X = [ ]
 test_X = [ ]
 
 
-print("Procesing Training data")
+print("Processing Training data")
 for cnt in range(1, 5001):
     train_X.append(image_to_encoding('./training/training/' + str(cnt) + '.png'))
 
@@ -57,23 +46,22 @@ for x in range(1, 40001):
     test_X.append(image_to_encoding('./testing/' + str(x) + '.png'))
 
 print("Generating Encoding")
-#train_X = preprocess_input(train_X)
 train_X = np.array(train_X)
 train_X = train_X.reshape((-1, 224, 224, 3))
 train_X = preprocess_input(train_X)
 train_X = model.predict(train_X)
 train_X = train_X.reshape((m,-1))
 
+test_X = np.array(test_X)
+test_X = test_X.reshape((-1, 224, 224, 3))
+test_X = preprocess_input(test_X)
+test_X = model.predict(test_X)
+test_X = test_X.reshape((m,-1))
+
 train_X = np.array(train_X, dtype=np.float32)
 test_X = np.array(test_X, dtype=np.float32)
 
-#np.savetxt('train_X.txt', train_X, delimiter=',')
-#np.savetxt('test_X.txt', test_X, delimiter=',')
-
-#train_X = train_X.reshape(-1,50176)
-#test_X = test_X.reshape(-1,50176)
-#train_X = np.transpose(train_X)
-
+print("Encoding Generated")
 graph = tf.Graph()
 
 with graph.as_default():
@@ -113,7 +101,7 @@ with tf.Session(graph=graph) as session:
         _, l, predictions = session.run([goal, loss, train_prediction], feed_dict=feed_dict)
         loss_trace.append(l)
 
-        if (step % 100 == 0):
+        if (step % 500 == 0):
             print("Minibatch loss at step {0}: {1}".format(step, l)) 
             print("Minibatch accuracy: {:.1f}%".format(accuracy(predictions, batch_labels)))
     
