@@ -105,6 +105,7 @@ with tf.Session(graph=graph) as session:
             print("Minibatch loss at step {0}: {1}".format(step, l)) 
             print("Minibatch accuracy: {:.1f}%".format(accuracy(predictions, batch_labels)))
     
+    print("Generating Predictions")
     pred = tf.nn.softmax(tf.matmul(test_X, A) + b)
     pred = tf.argmax(pred, axis=1)
     pred = pred + 1
