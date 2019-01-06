@@ -25,28 +25,39 @@ model = MobileNet(weights='imagenet', include_top=False)
 
 test_X = [ ]
 ans = [ ]
-for x in range(1, 40001, 1000):
-    test_X = [ ]
-    for y in range(x, x+1000):
-        test_X.append(image_to_encoding('./testing/' + str(y) + '.png'))
+for x in range(1, 40001):
+    test_X.append(image_to_encoding('./testing/' + str(x) + '.png'))
 
+X = np.array([[]])
+test_X = np.array(test_X)
+test_X = test_X.reshape((-1,224,224,3))
+test_X = preprocess_input(test_X)
+
+for x in range(0, 40000, 1000):
     start = time.time()
-    test_X = np.array(test_X)
-    test_X = test_X.reshape((-1, 224, 224, 3))
-    test_X = preprocess_input(test_X)
-    test_X = model.predict(test_X)
-    test_X = test_X.reshape((1000,-1))
+    temp = model.predict(test_X[x:x+1000,:])
+    temp = temp.reshape((1000,-1))
+    if X.shape[1] == 0:
+        X = temp
+    else:
+        X = np.concatenate((X,temp), axis=0)
     end = time.time()
     print("Completed iteration -> " + str(x / 1000) + " Time taken -> " + str(end-start))
 
-    with tf.Session() as sess:
-        saver.restore(sess, './model.ckpt')
+
+with tf.Session() as sess:
+    saver.restore(sess, './model.ckpt')
+    for x in range(0, 40000, 1000):
+        test_X = X[x:x+1000,:]
+        test_X = np.array(test_X, dtype=np.float32)
         pred = tf.nn.softmax(tf.matmul(test_X, A) + b)
         pred = tf.argmax(pred, axis=1)
         pred = pred + 1
         res = pred.eval()
+        print(res.shape)
         ans = ans + res.tolist()
 
+print(len(ans))
 ind = np.arange(1,40001,1)
 d = {'id': ind, 'category': ans}
 df = pd.DataFrame(data=d, dtype=np.int8)
