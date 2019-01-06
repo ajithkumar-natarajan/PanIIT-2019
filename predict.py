@@ -44,20 +44,22 @@ for x in range(0, 40000, 1000):
     end = time.time()
     print("Completed iteration -> " + str(x / 1000) + " Time taken -> " + str(end-start))
 
+data = tf.placeholder(dtype=tf.float32, shape=[None, 50176])
+a = tf.nn.softmax(tf.matmul(data, A) + b)
+b = tf.argmax(a, axis=1)
+pred = b + 1
 
 with tf.Session() as sess:
     saver.restore(sess, './model.ckpt')
-    for x in range(0, 40000, 1000):
-        test_X = X[x:x+1000,:]
-        test_X = np.array(test_X, dtype=np.float32)
-        pred = tf.nn.softmax(tf.matmul(test_X, A) + b)
-        pred = tf.argmax(pred, axis=1)
-        pred = pred + 1
-        res = pred.eval()
-        print(res.shape)
-        ans = ans + res.tolist()
 
-print(len(ans))
+    for x in range(0, 40000, 1000):
+        test_X = X[x:x+10,:]
+        test_X = np.array(test_X, dtype=np.float32)
+        prediction = sess.run(pred, feed_dict={data: test_X})
+        ans = ans + prediction.tolist()
+        print("Processed ->" + str(x))
+
+
 ind = np.arange(1,40001,1)
 d = {'id': ind, 'category': ans}
 df = pd.DataFrame(data=d, dtype=np.int8)
